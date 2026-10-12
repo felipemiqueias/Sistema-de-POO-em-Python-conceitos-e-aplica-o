@@ -1,0 +1,147 @@
+# Sistema Bancário Orientado a Objetos
+
+
+# Diagrama de Classes (Mermaid)
+
+```mermaid
+classDiagram
+    class Conta {
+        <<abstract>>
+        -_titular: str
+        -_numero: str
+        -_saldo: float
+        +titular
+        +numero
+        +saldo
+        +depositar(valor)
+        +sacar(valor)
+        +calcular_tarifa()* float
+        +__str__()
+        +__repr__()
+        +__eq__(outro)
+        +__lt__(outro)
+    }
+
+    class ContaCorrente {
+        -_limite: float
+        +limite
+        +calcular_tarifa() float
+    }
+
+    class ContaPoupanca {
+        -_rendimento: float
+        +rendimento
+        +calcular_tarifa() float
+        +aplicar_rendimento() float
+    }
+
+    class ContaPremium {
+        -_cashback: float
+        +cashback
+        +depositar(valor)
+        +calcular_tarifa() float
+    }
+
+    Conta <|-- ContaCorrente
+    Conta <|-- ContaPoupanca
+    Conta <|-- ContaPremium
+
+# Justificativa das Decisões de Modelagem
+
+Usei herança porque existe uma relação clara de "é um":
+
+- `ContaCorrente` é uma `Conta`
+- `ContaPoupanca` é uma `Conta`
+- `ContaPremium` é uma `Conta`
+
+Todas compartilham atributos (`titular`, `numero`, `saldo`) e comportamentos (`depositar`, `sacar`), mas diferem em regras específicas (tarifa, rendimento, cashback).
+
+`Conta` serve como contrato: toda conta bancária precisa ter um método `calcular_tarifa()`, mas cada tipo calcula de forma diferente. Por isso o método é `@abstractmethod` — ele obriga as filhas a implementarem.
+
+Não faz sentido instanciar uma `Conta` genérica no mundo real.
+
+Composição seria adequada se a relação fosse **"tem um"** (ex: `Conta` **tem um** `Historico`). Aqui a relação é de especialização, então herança é o modelo correto.
+
+# Encapsulamento com `@property`
+
+Todas as validações acontecem nos setters, garantindo que nenhum objeto inválido chegue a existir:
+
+ Propriedade          Validação aplicada 
+
+ `titular`           Não pode ser vazio, mínimo 3 caracteres 
+ `numero`            Deve conter apenas dígitos 
+ `saldo`             Não pode ser negativo 
+ `limite`            Não pode ser negativo 
+ `rendimento`        Deve estar entre 0 e 0.1 
+ `cashback`          Deve estar entre 0 e 0.05 
+
+Exemplo:
+
+```python
+conta = ContaCorrente("Maria", "1001", 500)
+conta.saldo = -100   # ValueError: O saldo não pode ser negativo.
+conta.titular = "ab" # ValueError: O titular deve ter pelo menos 3 caracteres.
+```
+
+# Polimorfismo
+
+O método `calcular_tarifa()` é abstrato em `Conta` e implementado de forma diferente em cada filha:
+
+Classe           Tarifa 
+
+`ContaCorrente`    R$ 12,00 
+ `ContaPoupanca`  R$ 0,00 
+ `ContaPremium`   R$ 29,90 
+
+
+
+# Métodos Dunder implementados
+
+ Método      Função 
+
+ `__str__`  Representação amigável para o usuário |
+ `__repr__` Representação técnica para debug |
+ `__eq__`   Compara contas pelo número |
+ `__lt__`   Permite ordenar contas por saldo com `sorted()` |
+
+# Exemplos de Uso
+
+```python
+# Criar contas
+cc = ContaCorrente("Miqueias Saraiva", "1001", 1500, 800)
+cp = ContaPoupanca("Ana Clara", "2001", 5000, 0.007)
+cprem = ContaPremium("Diego Lima", "3001", 10000, 0.02)
+
+# Depósito e saque
+cc.depositar(500)
+cc.sacar(200)
+
+# Rendimento (só existe em poupança)
+cp.aplicar_rendimento()
+
+# Cashback (só existe em premium)
+cprem.depositar(1000)
+
+# Polimorfismo
+for conta in [cc, cp, cprem]:
+    print(conta.titular, conta.calcular_tarifa())
+```
+
+# Tratamento de Exceções
+
+O sistema usa `try/except` para lidar com entradas inválidas:
+
+```python
+try:
+    ContaCorrente("ab", "1001")
+except ValueError as erro:
+    print(erro)  # O titular deve ter pelo menos 3 caracteres.
+```
+
+
+
+# Como executar
+
+```bash
+python banco.py
+```
